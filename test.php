@@ -50,7 +50,7 @@ $rs = CIBlockElement::GetList(
         'DATE_ACTIVE_FROM',
         'DATE_ACTIVE_TO',
         'PROPERTY_MEMBERS.NAME', // Получение имен привязанных участников
-		'PROPERTY_MEMBERS.ID' // Получение ID привязанных участников
+	'PROPERTY_MEMBERS.ID' // Получение ID привязанных участников
     ]
 );
 while($ob = $rs->GetNext())
