@@ -3,7 +3,7 @@
 use Bitrix\Main\Loader;
 Loader::includeModule("iblock");
 
-// Функция для определения ID инфоблока
+// Функция для определения ID инфоблока (обычно находится в init)
 function iblock(string $code, ?string $type = null): ?int
 {
     try {
