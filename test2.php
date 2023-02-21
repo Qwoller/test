@@ -1,94 +1,64 @@
-<?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
-
+<?
 use Bitrix\Main\Loader;
+use Bitrix\Main\Type\DateTime;
+use Bitrix\Main\Context;
+use Bitrix\Main\Web\Json;
+
 Loader::includeModule("iblock");
 
-// Функция для определения ID инфоблока
-function iblock(string $code, ?string $type = null): ?int
-{
-    try {
-        $iblockId = Bitrix\Iblock\IblockTable::getList(['filter' => ['CODE' => $code]])->Fetch();
-        return $iblockId['ID'];
-    } catch (Exception $e) {
-        return false;
-    }
-}
+$filter = [
+    "IBLOCK_ID" => 12,
+    ">=ACTIVE_FROM" => new DateTime('01.01.2015 00:00:00', 'd.m.Y H:i:s'),
+    "<=ACTIVE_FROM" => new DateTime('31.12.2015 23:59:59', 'd.m.Y H:i:s')
+];
 
-// Предположим что данные о дате и городе передаются с гет параметрами
-$date = $_GET['date'];
-$city = $_GET['city'];
-
-
-// Фильтр
-$filter['=ACTIVE'] = 'Y';
-$filter['CITY_VALUE'] = $city;
-
-$rs = CIBlockElement::GetList(
-    [
-        'SORT' => 'ASC'
-    ],
-    [
-        'IBLOCK_ID' => iblock('events'), // получение ID_IBLOCK мероприятий
-        'LOGIC' => 'AND',
-        [
-            '<=DATE_ACTIVE_FROM' => $date
-        ],
-        [
-            '>=DATE_ACTIVE_TO' => $date
-        ],
-        $filter
-    ],
-    false,
-    false,
-    [
+$allnews = \Bitrix\Iblock\Elements\ElementNewsTable::getList([
+    'select' => [
         'ID',
-        'IBLOCK_ID',
         'NAME',
+        'PREVIEW_TEXT',
         'PREVIEW_PICTURE',
-        'PROPERTY_CITY.ID', // Получение ID привязанного города
-        'PROPERTY_CITY.NAME', // Получение названия привязанного города
-        'DATE_ACTIVE_FROM',
-        'DATE_ACTIVE_TO',
+		'ACTIVE_FROM',
+		'CODE',
+		'TAGS',
+		'DETAIL_PAGE_URL' => 'IBLOCK.DETAIL_PAGE_URL',
+		'AUTHOR_ID' => 'AUTHOR.IBLOCK_GENERIC_VALUE',
+		'AUTHOR_NAME' =>'AUTHOR_ELEMENT.NAME',
+		'IBLOCK_SECTION_ID',
+		'SECTION_NAME' => 'SECTION.NAME'
+    ],
+    "filter" => $filter,
+    "order" => ["ACTIVE_FROM" => "DESC"],
+    "runtime" => [
+        new \Bitrix\Main\Entity\ReferenceField(
+            'AUTHOR_ELEMENT',
+            'Bitrix\Iblock\ElementTable',
+            [
+				'=this.AUTHOR_ID' => 'ref.ID',
+			]
+        ),
+        new \Bitrix\Main\Entity\ReferenceField(
+            'SECTION',
+            'Bitrix\Iblock\SectionTable',
+            [
+				'=this.IBLOCK_SECTION_ID' => 'ref.ID',
+			]
+        ),
     ]
-);
-
-while($ob = $rs->GetNext())
-{
-    if(!isset($arResult['ITEM'][$ob['ID']])){
-        $arResult['ITEM'][$ob['ID']] = [
-            'name' => $ob['NAME'],
-            'id' => $ob['ID'],
-            'img' => CFile::GetPath($ob['PREVIEW_PICTURE']),
-            'list_city' => [$ob['PROPERTY_CITY_ID'] => $ob['PROPERTY_CITY_NAME']]
-        ];
-        $arResult['ITEM_ID_LIST'][] = $ob['ID'];
-    }
-    else
-    {
-        $arResult['ITEM'][$ob['ID']]['list_city'][$ob['PROPERTY_CITY_ID']] = $ob['PROPERTY_CITY_NAME'];
-    }
+])->fetchAll();
+foreach ($allnews as $news) {
+    $items[] = array(
+        "id" => $news["ID"],
+        "url" => \CIBlock::ReplaceDetailUrl($news["DETAIL_PAGE_URL"], $news, true, "E"),
+		"image" => CFile::GetPath($news['PREVIEW_PICTURE']) ?? false,
+        "name" => $news["NAME"],
+        "sectionName" => $news['SECTION_NAME'],
+        "date" => \FormatDate("j F Y H:i", \MakeTimeStamp($news["ACTIVE_FROM"])),
+        "author" => $news['AUTHOR_NAME'],
+        "tags" => $news['TAGS'],
+    );
 }
 
-$rs = CIBlockElement::GetList(
-    [
-        'SORT' => 'ASC'
-    ],
-    [
-        'IBLOCK_ID' => iblock('members'),
-        'PROPERTY_MEMBERS' => $arResult['ITEM_ID_LIST']
-    ],
-    false,
-    false,
-    [
-        'ID',
-        'IBLOCK_ID',
-        'NAME',
-        'PROPERTY_MEMBERS'
-    ]
-);
-
-while($ob = $rs->GetNext())
-{
-    $arResult['ITEM'][$ob['PROPERTY_MEMBERS_VALUE']]['members'][$ob['ID']] = $ob['NAME'];
-}
-?>
+$context = Context::getCurrent();
+$context->getResponse()->addHeader("Content-type", "application/json; charset=utf-8");
+echo Json::encode($items);
