@@ -18,14 +18,14 @@ $allnews = \Bitrix\Iblock\Elements\ElementNewsTable::getList([
         'NAME',
         'PREVIEW_TEXT',
         'PREVIEW_PICTURE',
-		'ACTIVE_FROM',
-		'CODE',
-		'TAGS',
-		'DETAIL_PAGE_URL' => 'IBLOCK.DETAIL_PAGE_URL',
-		'AUTHOR_ID' => 'AUTHOR.IBLOCK_GENERIC_VALUE',
-		'AUTHOR_NAME' =>'AUTHOR_ELEMENT.NAME',
-		'IBLOCK_SECTION_ID',
-		'SECTION_NAME' => 'SECTION.NAME'
+	'ACTIVE_FROM',
+	'CODE',
+	'TAGS',
+	'DETAIL_PAGE_URL' => 'IBLOCK.DETAIL_PAGE_URL',
+	'AUTHOR_ID' => 'AUTHOR.IBLOCK_GENERIC_VALUE',
+	'AUTHOR_NAME' =>'AUTHOR_ELEMENT.NAME',
+	'IBLOCK_SECTION_ID',
+	'SECTION_NAME' => 'SECTION.NAME'
     ],
     "filter" => $filter,
     "order" => ["ACTIVE_FROM" => "DESC"],
@@ -33,30 +33,30 @@ $allnews = \Bitrix\Iblock\Elements\ElementNewsTable::getList([
         new \Bitrix\Main\Entity\ReferenceField(
             'AUTHOR_ELEMENT',
             'Bitrix\Iblock\ElementTable',
-            [
-				'=this.AUTHOR_ID' => 'ref.ID',
-			]
+		[
+			'=this.AUTHOR_ID' => 'ref.ID',
+		]
         ),
         new \Bitrix\Main\Entity\ReferenceField(
             'SECTION',
             'Bitrix\Iblock\SectionTable',
-            [
-				'=this.IBLOCK_SECTION_ID' => 'ref.ID',
-			]
+		[
+			'=this.IBLOCK_SECTION_ID' => 'ref.ID',
+		]
         ),
     ]
 ])->fetchAll();
 foreach ($allnews as $news) {
-    $items[] = array(
+    $items[] = [
         "id" => $news["ID"],
         "url" => \CIBlock::ReplaceDetailUrl($news["DETAIL_PAGE_URL"], $news, true, "E"),
-		"image" => CFile::GetPath($news['PREVIEW_PICTURE']) ?? false,
+	"image" => CFile::GetPath($news['PREVIEW_PICTURE']) ?? false,
         "name" => $news["NAME"],
         "sectionName" => $news['SECTION_NAME'],
         "date" => \FormatDate("j F Y H:i", \MakeTimeStamp($news["ACTIVE_FROM"])),
         "author" => $news['AUTHOR_NAME'],
         "tags" => $news['TAGS'],
-    );
+    ];
 }
 
 $context = Context::getCurrent();
